@@ -5,7 +5,6 @@ import cors from 'cors';
 import cardsRouter from './routes/cards.js';
 import decksRouter from './routes/decks.js';
 import path from 'path';
-import styled from 'styled-components';
 
 dotenv.config();
 const PORT = process.env.PORT || 3000;
