@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL == 'production' ? 'http://localhost:3000/api' : '/api';
+const API_BASE_URL = import.meta.env.PROD ? '/api' : 'http://localhost:3000/api';
 
 // Helper function to handle API responses
 const handleResponse = async (response) => {
@@ -11,19 +11,19 @@ const handleResponse = async (response) => {
 
 // Deck API calls
 const deckApi = {
-  // Get all decks
+  // Get all root decks
   getAllDecks: async () => {
     const response = await fetch(`${API_BASE_URL}/decks`);
     return handleResponse(response);
   },
 
-  // Get a specific deck with its cards
+  // Get a specific deck with its cards and sub-decks
   getDeck: async (deckId) => {
     const response = await fetch(`${API_BASE_URL}/decks/${deckId}`);
     return handleResponse(response);
   },
 
-  // Create a new deck
+  // Create a new deck (can be a sub-deck if parentId is provided)
   createDeck: async (deckData) => {
     const response = await fetch(`${API_BASE_URL}/decks`, {
       method: 'POST',
@@ -35,7 +35,7 @@ const deckApi = {
     return handleResponse(response);
   },
 
-  // Delete a deck
+  // Delete a deck and its sub-decks
   deleteDeck: async (deckId) => {
     const response = await fetch(`${API_BASE_URL}/decks/${deckId}`, {
       method: 'DELETE',

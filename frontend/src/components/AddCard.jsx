@@ -42,7 +42,7 @@ const AddCard = () => {
           <button
             type="button"
             className="button add-card-back-btn"
-            onClick={() => navigate(`/deck/${deckId}`)}
+            onClick={() => navigate(`/`)}
           >
             ⬅️ Back to Deck
           </button>

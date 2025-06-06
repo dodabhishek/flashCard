@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { deckApi } from '../services/api';
-import LoadingSpinner from './LoadingSpinner';
+import Loader from './LoadingSpinner';
 import DeckCard from './DeckCard';
 
 const DeckList = () => {
@@ -76,7 +76,7 @@ const DeckList = () => {
 
   if (isLoading) {
     console.log('Loading state:', isLoading);
-    return <LoadingSpinner text="Loading your decks..." />;
+    return <Loader />;
   }
 
   console.log('Current decks state:', decks);
@@ -89,7 +89,7 @@ const DeckList = () => {
         </div>
       )}
 
-      <div className="card">
+      <div className="create-deck-card">
         <h2>Create New Deck</h2>
         <form onSubmit={handleCreateDeck}>
           <label htmlFor="deckName">Deck Name</label>
@@ -115,7 +115,6 @@ const DeckList = () => {
             type="submit"
             className="button"
             disabled={isSubmitting}
-            style={{ width: '100%', marginTop: '1em' }}
           >
             {isSubmitting ? 'Creating...' : 'Create Deck'}
           </button>

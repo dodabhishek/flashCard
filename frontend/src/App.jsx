@@ -3,6 +3,8 @@ import { Routes, Route, Link } from 'react-router-dom';
 import DeckList from './components/DeckList';
 import DeckManager from './components/DeckManager';
 import AddCard from './components/AddCard';
+import AddSubDeck from './components/AddSubDeck';
+import SubDeckList from './components/SubDeckList';
 
 const App = () => {
   return (
@@ -24,6 +26,8 @@ const App = () => {
           <Route path="/" element={<DeckList />} />
           <Route path="/deck/:deckId" element={<DeckManager />} />
           <Route path="/deck/:deckId/add-card" element={<AddCard />} />
+          <Route path="/deck/:deckId/add-subdeck" element={<AddSubDeck />} />
+          <Route path="/deck/:deckId/subdecks" element={<SubDeckList />} />
         </Routes>
       </main>
       <footer className="footer">

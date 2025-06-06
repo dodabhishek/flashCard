@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { deckApi, cardApi } from '../services/api';
-import LoadingSpinner from './LoadingSpinner';
+import Loader from './LoadingSpinner';
 
 const TIMER_DURATION = 30; // seconds
 
@@ -21,7 +21,10 @@ const DeckManager = () => {
   const [editBack, setEditBack] = useState('');
   const [editLoading, setEditLoading] = useState(false);
   const [timer, setTimer] = useState(TIMER_DURATION);
+  const [selectedSubDeck, setSelectedSubDeck] = useState(null);
   const timerRef = useRef(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
 
   useEffect(() => {
     const fetchDeckAndCards = async () => {
@@ -31,7 +34,7 @@ const DeckManager = () => {
           deckApi.getDeck(deckId),
           cardApi.getDeckCards(deckId),
         ]);
-        setDeck(deckData);
+        setDeck(deckData.deck);
         setCards(cardsData);
         setError(null);
       } catch (err) {
@@ -45,7 +48,6 @@ const DeckManager = () => {
 
   // Timer logic
   useEffect(() => {
-    // Reset timer when card changes
     setTimer(TIMER_DURATION);
     if (timerRef.current) clearInterval(timerRef.current);
     if (!isFlipped && !showAnswerModal && cards.length > 0) {
@@ -63,32 +65,22 @@ const DeckManager = () => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-    // eslint-disable-next-line
   }, [currentCardIndex, cards, isFlipped, showAnswerModal]);
 
-  // Stop timer if user flips or answers
   const stopTimer = () => {
     if (timerRef.current) clearInterval(timerRef.current);
   };
 
-  // Randomly select a card index different from the current one
-  const getRandomCardIndex = () => {
-    if (cards.length <= 1) return 0;
-    let idx;
-    do {
-      idx = Math.floor(Math.random() * cards.length);
-    } while (idx === currentCardIndex);
-    return idx;
-  };
-
   const handleNext = () => {
     setIsFlipped(false);
-    setCurrentCardIndex(getRandomCardIndex());
+    setCurrentCardIndex((idx) => (idx + 1) % cards.length);
   };
+
   const handlePrevious = () => {
     setIsFlipped(false);
     setCurrentCardIndex((idx) => Math.max(idx - 1, 0));
   };
+
   const handleDeleteCard = async (cardId) => {
     if (!window.confirm('Delete this card?')) return;
     try {
@@ -101,7 +93,6 @@ const DeckManager = () => {
     }
   };
 
-  // Edit modal logic
   const handleShowEdit = () => {
     const card = cards[currentCardIndex];
     setEditFront(card.front || card.question || '');
@@ -110,12 +101,14 @@ const DeckManager = () => {
     document.body.style.overflow = 'hidden';
     stopTimer();
   };
+
   const handleCloseEdit = () => {
     setShowEditModal(false);
     setEditFront('');
     setEditBack('');
     document.body.style.overflow = '';
   };
+
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setEditLoading(true);
@@ -134,7 +127,6 @@ const DeckManager = () => {
     }
   };
 
-  // Show answer modal or flip card after timer
   const handleShowAnswer = (answer, fromTimer = false) => {
     stopTimer();
     if (fromTimer) {
@@ -145,6 +137,7 @@ const DeckManager = () => {
       document.body.style.overflow = 'hidden';
     }
   };
+
   const handleCloseModal = () => {
     setShowAnswerModal(false);
     setModalAnswer('');
@@ -152,7 +145,6 @@ const DeckManager = () => {
     stopTimer();
   };
 
-  // When user manually flips the card, stop the timer
   const handleFlip = () => {
     setIsFlipped((prev) => {
       if (!prev) stopTimer();
@@ -160,7 +152,38 @@ const DeckManager = () => {
     });
   };
 
-  if (isLoading) return <LoadingSpinner text="Loading your deck..." />;
+  const handleSubDeckSelect = async (subDeckId) => {
+    setSelectedSubDeck(subDeckId);
+    setIsLoading(true);
+    try {
+      const cardsData = await cardApi.getDeckCards(subDeckId);
+      setCards(cardsData);
+      setCurrentCardIndex(0);
+      setIsFlipped(false);
+    } catch (err) {
+      setError('Failed to load sub-deck cards.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [menuOpen]);
+
+  if (isLoading) return <Loader />;
   if (error) {
     return (
       <div className="deck-manager-error">
@@ -178,109 +201,131 @@ const DeckManager = () => {
     );
   }
 
-  // Main blurred content
-  const mainContent = (
+  return (
     <div className={`deck-manager${showAnswerModal || showEditModal ? ' blurred-bg' : ''}`}>
       <div className="deck-header">
         <h1>{deck.name}</h1>
         <p className="deck-desc">{deck.description || 'No description provided'}</p>
         <div className="deck-actions">
           <button className="button deck-nav-btn" onClick={() => navigate(`/deck/${deckId}/add-card`)}>➕ Add Card</button>
-          <button className="button deck-nav-btn" onClick={() => navigate('/')}>⬅️ Back to Decks</button>
+          <button className="button deck-nav-btn" onClick={() => navigate(-1)}>⬅️ Back</button>
         </div>
       </div>
+
+      {deck.subDecks && deck.subDecks.length > 0 && (
+        <div className="sub-decks-section">
+          <h2>Sub-decks</h2>
+          <div className="sub-decks-grid">
+            {deck.subDecks.map((subDeck) => (
+              <div 
+                key={subDeck._id} 
+                className={`sub-deck-card ${selectedSubDeck === subDeck._id ? 'selected' : ''}`}
+                onClick={() => handleSubDeckSelect(subDeck._id)}
+              >
+                <h3>{subDeck.name}</h3>
+                <p>{subDeck.description || 'No description'}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {cards.length === 0 ? (
         <div className="flashcard-empty">
           <p>No cards in this deck yet. Add your first card to get started!</p>
           <button className="button" onClick={() => navigate(`/deck/${deckId}/add-card`)}>Add Your First Card</button>
         </div>
       ) : (
-        <>
-          <div className="flashcard-section">
-            <div className="flashcard-nav">
-              <button className="button deck-nav-btn" onClick={handlePrevious} disabled={cards.length <= 1}>⏮️ Previous</button>
-              <span className="flashcard-count">Card {currentCardIndex + 1} of {cards.length}</span>
-              <button className="button deck-nav-btn" onClick={handleNext} disabled={cards.length <= 1}>Next 🎲</button>
-            </div>
-            <div className="flashcard" onClick={handleFlip}>
-              <div className="flashcard-inner">
-                <div className={`flashcard-front${isFlipped ? ' flashcard-flipped' : ''}`}>{isFlipped ? (cards[currentCardIndex].back || cards[currentCardIndex].answer) : (cards[currentCardIndex].front || cards[currentCardIndex].question)}</div>
-              </div>
-              <div className="flashcard-timer">{!isFlipped && !showAnswerModal && <span>⏳ {timer}s</span>}</div>
-            </div>
-            <div className="flashcard-actions">
-              <button className="button button-danger" onClick={() => handleDeleteCard(cards[currentCardIndex]._id)}>
-                🗑️ Delete Card
+        <div className="flashcard-section">
+          <div className="flashcard-nav">
+            <button className="button deck-nav-btn" onClick={handlePrevious} disabled={cards.length <= 1}>⏮️ Previous</button>
+            <button className="button deck-nav-btn" onClick={handleNext} disabled={cards.length <= 1}>Next ⏭️</button>
+            <div className="menu-container" ref={menuRef} style={{ position: 'relative', marginLeft: '1em' }}>
+              <button
+                className="menu-dot-btn"
+                onClick={() => setMenuOpen((open) => !open)}
+                aria-label="Show actions"
+                type="button"
+              >
+                <span style={{ fontSize: '1.5em', lineHeight: 1 }}>⋮</span>
               </button>
-              <button className="button" onClick={() => handleShowAnswer(cards[currentCardIndex].back || cards[currentCardIndex].answer)}>
-                Answer
-              </button>
-              <button className="button" onClick={handleShowEdit}>
-                ✏️ Edit
-              </button>
+              {menuOpen && (
+                <div className="card-menu-column">
+                  <button
+                    className="button button-danger"
+                    onClick={() => { setMenuOpen(false); handleDeleteCard(cards[currentCardIndex]._id); }}
+                  >
+                    🗑️ Delete Card
+                  </button>
+                  <button
+                    className="button"
+                    onClick={() => { setMenuOpen(false); handleShowAnswer(cards[currentCardIndex].back || cards[currentCardIndex].answer); }}
+                  >
+                    Answer
+                  </button>
+                  <button
+                    className="button"
+                    onClick={() => { setMenuOpen(false); handleShowEdit(); }}
+                  >
+                    ✏️ Edit
+                  </button>
+                </div>
+              )}
             </div>
           </div>
-        </>
+          <div className="flashcard" onClick={handleFlip}>
+            <div className="flashcard-inner">
+              <div className={`flashcard-front${isFlipped ? ' flashcard-flipped' : ''}`} style={{ whiteSpace: 'pre-wrap' }}>
+                {isFlipped ? (cards[currentCardIndex].back || cards[currentCardIndex].answer) : (cards[currentCardIndex].front || cards[currentCardIndex].question)}
+              </div>
+            </div>
+            <div className="flashcard-timer">{!isFlipped && !showAnswerModal && <span>⏳ {timer}s</span>}</div>
+          </div>
+        </div>
+      )}
+
+      {showAnswerModal && (
+        <div className="modal-overlay" onClick={handleCloseModal}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h3>Answer</h3>
+            <p className="modal-answer" style={{ whiteSpace: 'pre-wrap' }}>{modalAnswer}</p>
+            <button className="button" onClick={handleCloseModal}>Close</button>
+          </div>
+        </div>
+      )}
+
+      {showEditModal && (
+        <div className="modal-overlay" onClick={handleCloseEdit}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h3>Edit Card</h3>
+            <form onSubmit={handleEditSubmit}>
+              <div className="form-group">
+                <label>Question:</label>
+                <textarea
+                  value={editFront}
+                  onChange={(e) => setEditFront(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Answer:</label>
+                <textarea
+                  value={editBack}
+                  onChange={(e) => setEditBack(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="modal-actions">
+                <button type="button" className="button" onClick={handleCloseEdit}>Cancel</button>
+                <button type="submit" className="button" disabled={editLoading}>
+                  {editLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
-  );
-
-  // Modal overlay (always outside the blurred content)
-  const modal = showAnswerModal && (
-    <div className="modal-overlay" onClick={handleCloseModal}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
-        <h2>Answer</h2>
-        <div className="modal-answer">{modalAnswer}</div>
-        <button className="button" onClick={handleCloseModal} style={{marginTop: '1em'}}>Close</button>
-      </div>
-    </div>
-  );
-
-  // Edit modal
-  const editModal = showEditModal && (
-    <div className="modal-overlay" onClick={handleCloseEdit}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
-        <h2>Edit Card</h2>
-        <form onSubmit={handleEditSubmit}>
-          <div style={{marginBottom: '1em'}}>
-            <label htmlFor="editFront">Question</label>
-            <textarea
-              id="editFront"
-              value={editFront}
-              onChange={e => setEditFront(e.target.value)}
-              rows={3}
-              style={{width: '100%', borderRadius: '6px', padding: '0.5em'}}
-              required
-            />
-          </div>
-          <div style={{marginBottom: '1em'}}>
-            <label htmlFor="editBack">Answer</label>
-            <textarea
-              id="editBack"
-              value={editBack}
-              onChange={e => setEditBack(e.target.value)}
-              rows={3}
-              style={{width: '100%', borderRadius: '6px', padding: '0.5em'}}
-              required
-            />
-          </div>
-          <button className="button" type="submit" disabled={editLoading} style={{marginRight: '1em'}}>
-            {editLoading ? 'Saving...' : 'Save'}
-          </button>
-          <button className="button button-danger" type="button" onClick={handleCloseEdit} disabled={editLoading}>
-            Cancel
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-
-  return (
-    <>
-      {mainContent}
-      {modal}
-      {editModal}
-    </>
   );
 };
 
