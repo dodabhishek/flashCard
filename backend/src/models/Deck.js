@@ -9,6 +9,15 @@ const deckSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  parent: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Deck',
+    default: null
+  },
+  subDecks: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Deck'
+  }],
   createdAt: {
     type: Date,
     default: Date.now
