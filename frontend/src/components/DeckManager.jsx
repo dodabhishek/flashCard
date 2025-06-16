@@ -78,7 +78,7 @@ const DeckManager = () => {
 
   const handlePrevious = () => {
     setIsFlipped(false);
-    setCurrentCardIndex((idx) => Math.max(idx - 1, 0));
+    setCurrentCardIndex((idx) => (idx - 1 + cards.length) % cards.length);
   };
 
   const handleDeleteCard = async (cardId) => {
