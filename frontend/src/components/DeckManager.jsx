@@ -288,13 +288,6 @@ const DeckManager = () => {
                   </button>
                   <button
                     className="button"
-                    style={{ fontWeight: 'bold', letterSpacing: '0.5px', padding: '0.6em 1.5em', fontSize: '1em', marginBottom: '0.5em', background: '#f3f4f6', color: '#2563eb' }}
-                    onClick={() => { setMenuOpen(false); handleShowAnswer(cards[currentCardIndex].back || cards[currentCardIndex].answer); }}
-                  >
-                    Show Answer
-                  </button>
-                  <button
-                    className="button"
                     style={{ fontWeight: 'bold', letterSpacing: '0.5px', padding: '0.6em 1.5em', fontSize: '1em', background: '#e0e7ff', color: '#1749b1' }}
                     onClick={() => { setMenuOpen(false); handleShowEdit(); }}
                   >
