@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { deckApi, cardApi } from '../services/api';
 import Loader from './LoadingSpinner';
+import { Settings } from 'lucide-react';
 
 const TIMER_DURATION = 30; // seconds
 
@@ -55,7 +56,7 @@ const DeckManager = () => {
         setTimer((prev) => {
           if (prev <= 1) {
             clearInterval(timerRef.current);
-            handleShowAnswer(cards[currentCardIndex].back || cards[currentCardIndex].answer, true);
+            handleShowAnswer(cards[currentCardIndex].back || cards[currentCardIndex].answer, false);
             return 0;
           }
           return prev - 1;
@@ -73,12 +74,12 @@ const DeckManager = () => {
 
   const handleNext = () => {
     setIsFlipped(false);
-    setCurrentCardIndex((idx) => (idx + 1) % cards.length);
+    setCurrentCardIndex((idx) => Math.min(idx + 1, cards.length - 1));
   };
 
   const handlePrevious = () => {
     setIsFlipped(false);
-    setCurrentCardIndex((idx) => (idx - 1 + cards.length) % cards.length);
+    setCurrentCardIndex((idx) => Math.max(idx - 1, 0));
   };
 
   const handleDeleteCard = async (cardId) => {
@@ -207,8 +208,20 @@ const DeckManager = () => {
         <h1>{deck.name}</h1>
         <p className="deck-desc">{deck.description || 'No description provided'}</p>
         <div className="deck-actions">
-          <button className="button deck-nav-btn" onClick={() => navigate(`/deck/${deckId}/add-card`)}>➕ Add Card</button>
-          <button className="button deck-nav-btn" onClick={() => navigate(-1)}>⬅️ Back</button>
+          <button
+            className="button deck-nav-btn"
+            style={{ fontWeight: 'bold', padding: '0.6em 1.5em', fontSize: '1em', background: '#e0e7ff', color: '#1749b1', border: '1px solid #b6c6e6' }}
+            onClick={() => navigate(`/deck/${deckId}/add-card`)}
+          >
+            Add Card
+          </button>
+          <button
+            className="button deck-nav-btn"
+            style={{ fontWeight: 'bold', padding: '0.6em 1.5em', fontSize: '1em', background: '#e0e7ff', color: '#1749b1', border: '1px solid #b6c6e6' }}
+            onClick={() => navigate(-1)}
+          >
+            Back
+          </button>
         </div>
       </div>
 
@@ -237,43 +250,60 @@ const DeckManager = () => {
         </div>
       ) : (
         <div className="flashcard-section">
-          <div className="flashcard-nav">
-            <button className="button deck-nav-btn" onClick={handlePrevious} disabled={cards.length <= 1}>⏮️ Previous</button>
-            <button className="button deck-nav-btn" onClick={handleNext} disabled={cards.length <= 1}>Next ⏭️</button>
+          <div className="flashcard-nav" style={{ justifyContent: 'center', gap: '1.5em', marginBottom: '1.5em', alignItems: 'center', display: 'flex' }}>
+            <button
+              className="button"
+              style={{ fontWeight: 'bold', padding: '0.6em 1.5em', fontSize: '1em', background: '#e0e7ff', color: '#1749b1', border: '1px solid #b6c6e6' }}
+              onClick={handlePrevious}
+              disabled={cards.length <= 1 || currentCardIndex === 0}
+            >
+              Previous 
+            </button>
+            <button
+              className="button"
+              style={{ fontWeight: 'bold', padding: '0.6em 1.5em', fontSize: '1em', background: '#e0e7ff', color: '#1749b1', border: '1px solid #b6c6e6' }}
+              onClick={handleNext}
+              disabled={cards.length <= 1 || currentCardIndex === cards.length - 1}
+            >
+              Next 
+            </button>
             <div className="menu-container" ref={menuRef} style={{ position: 'relative', marginLeft: '1em' }}>
               <button
                 className="menu-dot-btn"
+                style={{ background: '#e0e7ff', border: 'none', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 22, color: '#1749b1', boxShadow: '0 1px 4px rgba(60,60,130,0.07)' }}
                 onClick={() => setMenuOpen((open) => !open)}
                 aria-label="Show actions"
                 type="button"
               >
-                <span style={{ fontSize: '1.5em', lineHeight: 1 }}>⋮</span>
+                <Settings size={24} />
               </button>
               {menuOpen && (
-                <div className="card-menu-column">
+                <div className="card-menu-column" style={{ minWidth: 160 }}>
                   <button
                     className="button button-danger"
+                    style={{ fontWeight: 'bold', letterSpacing: '0.5px', padding: '0.6em 1.5em', fontSize: '1em', marginBottom: '0.5em' }}
                     onClick={() => { setMenuOpen(false); handleDeleteCard(cards[currentCardIndex]._id); }}
                   >
-                    🗑️ Delete Card
+                    Delete Card
                   </button>
                   <button
                     className="button"
-                    onClick={() => { setMenuOpen(false); handleShowAnswer(cards[currentCardIndex].back || cards[currentCardIndex].answer); }}
-                  >
-                    Answer
-                  </button>
-                  <button
-                    className="button"
+                    style={{ fontWeight: 'bold', letterSpacing: '0.5px', padding: '0.6em 1.5em', fontSize: '1em', background: '#e0e7ff', color: '#1749b1' }}
                     onClick={() => { setMenuOpen(false); handleShowEdit(); }}
                   >
-                    ✏️ Edit
+                    Edit Card
                   </button>
                 </div>
               )}
             </div>
           </div>
-          <div className="flashcard" onClick={handleFlip}>
+          <div className="flashcard" onClick={() => {
+            if (!isFlipped) {
+              handleShowAnswer(cards[currentCardIndex].back || cards[currentCardIndex].answer);
+            } else {
+              handleFlip();
+            }
+          }}>
             <div className="flashcard-inner">
               <div className={`flashcard-front${isFlipped ? ' flashcard-flipped' : ''}`} style={{ whiteSpace: 'pre-wrap' }}>
                 {isFlipped ? (cards[currentCardIndex].back || cards[currentCardIndex].answer) : (cards[currentCardIndex].front || cards[currentCardIndex].question)}
