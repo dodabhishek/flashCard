@@ -7,7 +7,10 @@ const router = express.Router();
 // Get all cards for a specific deck
 router.get('/deck/:deckId', async (req, res) => {
   try {
-    const cards = await Flashcard.find({ deck: req.params.deckId });
+    const cards = await Flashcard.find({ deck: req.params.deckId })
+      .select('question answer category createdAt')
+      .lean()
+      .exec();
     res.json(cards);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -48,7 +51,10 @@ router.post('/', async (req, res) => {
 // Delete a card
 router.delete('/:id', async (req, res) => {
   try {
-    await Flashcard.findByIdAndDelete(req.params.id);
+    const card = await Flashcard.findByIdAndDelete(req.params.id);
+    if (!card) {
+      return res.status(404).json({ message: 'Card not found' });
+    }
     res.json({ message: 'Card deleted' });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -59,6 +65,10 @@ router.delete('/:id', async (req, res) => {
 router.patch('/:id', async (req, res) => {
   try {
     const card = await Flashcard.findById(req.params.id);
+    if (!card) {
+      return res.status(404).json({ message: 'Card not found' });
+    }
+    
     if (req.body.question) card.question = req.body.question;
     if (req.body.answer) card.answer = req.body.answer;
     if (req.body.category) card.category = req.body.category;

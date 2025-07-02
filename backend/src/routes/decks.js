@@ -7,7 +7,11 @@ const router = express.Router();
 // Get all root decks (decks without parents)
 router.get('/', async (req, res) => {
   try {
-    const decks = await Deck.find({ parent: null }).populate('subDecks');
+    const decks = await Deck.find({ parent: null })
+      .populate('subDecks', 'name description createdAt')
+      .select('name description createdAt subDecks')
+      .lean()
+      .exec();
     res.json(decks);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -17,10 +21,23 @@ router.get('/', async (req, res) => {
 // Get a specific deck with its cards and sub-decks
 router.get('/:id', async (req, res) => {
   try {
-    const deck = await Deck.findById(req.params.id)
-      .populate('subDecks')
-      .populate('parent');
-    const cards = await Flashcard.find({ deck: req.params.id });
+    const [deck, cards] = await Promise.all([
+      Deck.findById(req.params.id)
+        .populate('subDecks', 'name description createdAt')
+        .populate('parent', 'name')
+        .select('name description parent subDecks createdAt')
+        .lean()
+        .exec(),
+      Flashcard.find({ deck: req.params.id })
+        .select('question answer category createdAt')
+        .lean()
+        .exec()
+    ]);
+    
+    if (!deck) {
+      return res.status(404).json({ message: 'Deck not found' });
+    }
+    
     res.json({ deck, cards });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -58,9 +75,13 @@ router.delete('/:id', async (req, res) => {
   try {
     const deck = await Deck.findById(req.params.id);
     
+    if (!deck) {
+      return res.status(404).json({ message: 'Deck not found' });
+    }
+    
     // Recursively delete all sub-decks
     const deleteSubDecks = async (deckId) => {
-      const subDecks = await Deck.find({ parent: deckId });
+      const subDecks = await Deck.find({ parent: deckId }).select('_id');
       for (const subDeck of subDecks) {
         await deleteSubDecks(subDeck._id);
         await Flashcard.deleteMany({ deck: subDeck._id });
@@ -93,6 +114,10 @@ router.delete('/:id', async (req, res) => {
 router.patch('/:id', async (req, res) => {
   try {
     const deck = await Deck.findById(req.params.id);
+    if (!deck) {
+      return res.status(404).json({ message: 'Deck not found' });
+    }
+    
     if (req.body.name) deck.name = req.body.name;
     if (req.body.description) deck.description = req.body.description;
     

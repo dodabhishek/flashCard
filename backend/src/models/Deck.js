@@ -24,6 +24,11 @@ const deckSchema = new mongoose.Schema({
   }
 });
 
+// Add indexes for better query performance
+deckSchema.index({ parent: 1 }); // For finding sub-decks
+deckSchema.index({ createdAt: -1 }); // For sorting by creation date
+deckSchema.index({ name: 1 }); // For name-based searches
+
 const Deck = mongoose.model('Deck', deckSchema);
 
 export default Deck; 
