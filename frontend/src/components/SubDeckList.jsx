@@ -74,14 +74,22 @@ const SubDeckList = () => {
       <div className="add-subdeck-header">
         <h1>All Sub-decks of {deck?.name}</h1>
         <div style={{ display: 'flex', gap: '1em' }}>
-          <button className="button" onClick={() => navigate(`/deck/${deckId}/add-subdeck`)}>+ Add Sub-deck</button>
-          <button className="button" onClick={() => navigate(-1)}>⬅️ Back</button>
+          <button className="button" onClick={() => navigate(`/deck/${deckId}/add-subdeck`)}> Add Sub-deck</button>
+          <button className="button" onClick={() => navigate(-1)}>Back</button>
         </div>
       </div>
       {deck.subDecks && deck.subDecks.length > 0 ? (
         <div className="subdeck-list-grid">
           {deck.subDecks.map((subDeck) => (
-            <div key={subDeck._id} className="subdeck-list-item" style={{ position: 'relative' }}>
+            <div key={subDeck._id} className="subdeck-list-item" style={{ position: 'relative', paddingTop: '2.5em' }}>
+              <button
+                className="subdeck-delete-btn button button-danger"
+                style={{ position: 'absolute', top: '0.7em', right: '1em', padding: '0.4em 1em', fontSize: '0.95em', zIndex: 2 }}
+                onClick={() => handleDeleteSubDeck(subDeck._id)}
+                disabled={deleting === subDeck._id}
+              >
+                {deleting === subDeck._id ? 'Deleting...' : 'Delete'}
+              </button>
               <Link
                 to={`/deck/${subDeck._id}`}
                 style={{ textDecoration: 'none', color: 'inherit' }}
@@ -90,14 +98,6 @@ const SubDeckList = () => {
                 <div className="subdeck-list-desc">{subDeck.description || 'No description'}</div>
                 <div className="subdeck-list-count">{typeof cardCounts[subDeck._id] === 'number' ? `${cardCounts[subDeck._id]} cards` : '...'}</div>
               </Link>
-              <button
-                className="button button-danger"
-                style={{ position: 'absolute', top: '1em', right: '1em', padding: '0.4em 1em', fontSize: '0.95em' }}
-                onClick={() => handleDeleteSubDeck(subDeck._id)}
-                disabled={deleting === subDeck._id}
-              >
-                {deleting === subDeck._id ? 'Deleting...' : 'Delete'}
-              </button>
             </div>
           ))}
         </div>
