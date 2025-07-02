@@ -16,8 +16,10 @@ export const performanceMonitor = (req, res, next) => {
       console.debug(`✅ Fast request: ${method} ${url} - ${duration}ms - Status: ${statusCode}`);
     }
     
-    // Add response time header
-    res.setHeader('X-Response-Time', `${duration}ms`);
+    // Add response time header only if headers haven't been sent
+    if (!res.headersSent) {
+      res.setHeader('X-Response-Time', `${duration}ms`);
+    }
   });
   
   next();

@@ -12,8 +12,9 @@ export const connectDB = async () => {
             maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
             serverSelectionTimeoutMS: 5000, // Timeout for server selection
             socketTimeoutMS: 45000, // Timeout for socket operations
-            bufferMaxEntries: 0, // Disable mongoose buffering
-            bufferCommands: false, // Disable mongoose buffering
+            // Remove deprecated options
+            // bufferMaxEntries: 0, // Disable mongoose buffering
+            // bufferCommands: false, // Disable mongoose buffering
         });
         console.log(`MongoDB connected: ${conn.connection.host}`);
         
